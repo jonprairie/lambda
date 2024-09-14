@@ -1,0 +1,55 @@
+:PROPERTIES:
+:ID:       7a60c3c6-8a97-43e9-a577-6891158899a6
+:END:
+#+title: (λ)Lambda
+
+* Simple lambda syntax for anonymous functions:
+
+#+CAPTION: equivalent to (mapcar #'1+ (list 1 2 3 4 5))
+#+begin_src common-lisp
+(mapcar (λx + x 1) (list 1 2 3 4 5))
+#+end_src
+
+:==> (2 3 4 5 6)
+
+
+#+CAPTION: we can go deeper
+#+begin_src common-lisp
+(reduce (λxy + x y) (loop for x from 1 to 100))
+#+end_src
+
+:==> 5050
+
+
+#+CAPTION: unfortunately this doesn't work yet (ever?)
+#+begin_src common-lisp
+((λx format t "why can't we have nice things?...~a~%" x)
+ "everything sucks")
+#+end_src
+
+:==> death
+
+* Install
+
+#+CAPTION: clone to your local-projects directory
+#+begin_src bash
+cd ~/quicklisp/local-projects
+git clone https://github.com/jonprairie/lambda.git
+#+end_src
+
+
+#+CAPTION: then load with quicklisp:
+#+begin_src common-lisp
+(ql:quickload :lambda)
+(lambda:use-syntax)
+#+end_src
+
+* Future
+
+this was mostly for fun, to see if i could do it.  that being said,
+it's surprisingly handy. i use it for small, one-line anonymous functions
+in a map or reduce, or other functions of that ilk, where a full `(lambda (x)...)`
+form would be overkill. i'd like to eventually add support for head-position
+but i'm not sure it's technically feasible without a full code-walker. composition
+of lambdas would be cool too. between those two features doing lambda calculus
+in CL could look surprisingly native.
