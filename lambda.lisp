@@ -3,33 +3,38 @@
 (in-package #:lambda)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  ;; i don't know if this is strictly necessary. i should probably look into when
-  ;; read-lambda is _actually_ required.
+  (defun make-lambda (lambda-str body &optional (splice-body-p t))
+    (let* ((split-lambda-str (split "Λ" lambda-str))
+           (lambda-str-head  (first split-lambda-str))
+           (bound-vars-str   (split "" lambda-str-head :regex t :omit-nulls t))
+           (bound-vars       (if bound-vars-str (mapcar #'intern bound-vars-str) nil)))
+      (if (rest split-lambda-str)
+          `(lambda ,bound-vars
+             ,(make-lambda (join "Λ" (rest split-lambda-str))
+                           body splice-body-p))
+          (if splice-body-p
+              `(lambda ,bound-vars ,@body)
+              `(lambda ,bound-vars ,body)))))
   (defun read-lambda (stream char)
-    (declare (ignore char))
-    (let* ((lambda-parms (string (read stream t nil nil)))
-           (bound-vars (mapcar #'intern (split "" lambda-parms :regex t :omit-nulls t)))
-           (body (read-delimited-list #\) stream)))
-      ;; push the end-paren that we consumed in read-delimited-list back onto the stream
-      ;; so the open-paren from just before the λ can terminate.
-      (unread-char #\) stream)
-      ;; we have to return a wrapped lambda since we're building and returning a new
-      ;; list while the enclosing parentheses are still there. this structure results
-      ;; in an empty call which will return the actual lambda we care about.
-      ;; it'd be really nice if we could return multiple values here and populate the
-      ;; enclosing parentheses directly but according to HS[0] it's against the law
-      ;; to do directly. there may be a way to get around all this with some
-      ;; macro/symbol-macro/reader-macro wizardry but i have yet to figure it out. in
-      ;; the meantime the main downside of doing it this way is that the λ expression
-      ;; can't be used at the head of a list in the same way a (lambda () ...)
-      ;; expression can.
-      ;; [0] https://www.cliki.net/Issue%20READER-MACRO-VALUES
-      `(lambda ()
-         (lambda ,bound-vars ,body)))))
+    (let ((next-char (peek-char t stream)))
+      (if (eq next-char #\λ)
+          (progn
+            (read-char stream)
+            (let* ((ws-p            (find (peek-char nil stream) *whitespaces*))
+                   (dot-p           (when (eq #\. (peek-char nil stream)) (read-char stream)))
+                   (input-str       (if (or ws-p dot-p) "" (upcase (string (read stream)))))
+                   (splice-body-p   (not (or (string= (s-last input-str) ".") dot-p)))
+                   (lambda-parm-grp (remove-punctuation input-str :replacement ""))
+                   (body            (read-delimited-list #\) stream)))
+              (make-lambda lambda-parm-grp body splice-body-p)))
+          (funcall (get-macro-character
+                    #\(
+                    (find-readtable :common-lisp))
+                   stream char)))))
 
 (defreadtable lambda::syntax
   (:merge :common-lisp)
-  (:macro-char #\λ 'read-lambda)
+  (:macro-char #\( 'read-lambda)
   (:case :upcase))
 
 (defun use-syntax ()

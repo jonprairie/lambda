@@ -1,55 +1,94 @@
 :PROPERTIES:
 :ID:       7a60c3c6-8a97-43e9-a577-6891158899a6
 :END:
-#+title: (λ)Lambda
+#+title: (λ)lambda
 
-* Simple lambda syntax for anonymous functions:
+* simple lambda syntax for anonymous functions
 
-#+CAPTION: equivalent to (mapcar #'1+ (list 1 2 3 4 5))
+** why?
+why not?...
+
+** examples
+
+*** in the beginning, equivalent to (constantly 5)
 #+begin_src common-lisp
-(mapcar (λx + x 1) (list 1 2 3 4 5))
+(λ 5)
 #+end_src
 
-:==> (2 3 4 5 6)
-
-
-#+CAPTION: we can go deeper
+*** basic usage, equivalent to 1+
 #+begin_src common-lisp
-(reduce (λxy + x y) (loop for x from 1 to 100))
+(mapcar (λx. + x 1) (list 1 2 3 4 5))
+
+;;==> (2 3 4 5 6)
 #+end_src
 
-:==> 5050
-
-
-#+CAPTION: unfortunately this doesn't work yet (ever?)
+*** multiple bound variables are supported
 #+begin_src common-lisp
-((λx format t "why can't we have nice things?...~a~%" x)
- "everything sucks")
+(reduce (λxy. + x y) (loop for x from 1 to 100 collect x))
+;;==> 5050
 #+end_src
 
-:==> death
+*** we can call immediately when in head position
+#+begin_src common-lisp
+((λx. format nil "are we scheme? ~a~%" x) "...close, but not quite")
+;;==> "are we scheme? ...close, but not quite"
+#+end_src
 
-* Install
+*** lets go deeper, another 1+ implementation
+#+begin_src common-lisp
+((λxλy. + x y) 1)
+#+end_src
 
-#+CAPTION: clone to your local-projects directory
+*** unfortunately this doesn't work, hence we're not quite scheme
+#+begin_src common-lisp
+(((λxλy. + x y) 1) 2)         ;; ==> death
+(funcall ((λxλy. + x y) 1) 2) ;; ==> 3
+#+end_src
+
+*** also, don't do this
+#+begin_src common-lisp
+(λt. + t 1) ;; ==> more death
+#+end_src
+
+*** the trailing period isn't necessary if you don't want the implicit list
+#+begin_src common-lisp
+(when (= ((λx (+ x 1)) 1)
+       (1+ 1))
+    "1+ again")
+;;==> "1+ again"
+#+end_src
+
+*** all other periods are ignored
+#+begin_src common-lisp
+(λa.λb.λc.λd.λe.λf.λg.λh.λi "for readability")
+;;==> (LAMBDA (A) (LAMBDA (B) (LAMBDA (C) (LAMBDA (D) (LAMBDA (E) (LAMBDA (F) (LAMBDA (G) (LAMBDA (H) (LAMBDA (I) "for readability")))))))))
+#+end_src
+
+* install
+
+clone to your local-projects directory
 #+begin_src bash
 cd ~/quicklisp/local-projects
 git clone https://github.com/jonprairie/lambda.git
 #+end_src
 
-
-#+CAPTION: then load with quicklisp:
+then load with quicklisp
 #+begin_src common-lisp
 (ql:quickload :lambda)
 (lambda:use-syntax)
 #+end_src
 
-* Future
+* future
 
-this was mostly for fun, to see if i could do it.  that being said,
-it's surprisingly handy. i use it for small, one-line anonymous functions
-in a map or reduce, or other functions of that ilk, where a full `(lambda (x)...)`
-form would be overkill. i'd like to eventually add support for head-position
-but i'm not sure it's technically feasible without a full code-walker. composition
-of lambdas would be cool too. between those two features doing lambda calculus
-in CL could look surprisingly native.
+this was mostly for fun, to see if i could do it. that being said,
+it's surprisingly handy. i find myself reaching for λ much more frequently
+than expected. on that note there are a couple more features i'd like to
+explore:
+
+- [X] add to ultralisp
+- [ ] add to quicklisp
+- [ ] better error handling and messaging
+- [ ] auto-calling nested lambdas in head position
+- [ ] variables longer than a single letter
+- [ ] better print representation for λ's
+- [ ] better implementation
